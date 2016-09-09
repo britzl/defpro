@@ -12,12 +12,12 @@ When running from the command line you need to use a Lua version with bit wise o
 
 # Examples
 ### From Defold
-Check examples/defold for an example of how to get and display profiler data from within a running Defold app.
+Check [examples/defold](https://github.com/britzl/defpro/tree/master/example/defold) for an example of how to get and display profiler data from within a running Defold app.
 
 ![Command line](docs/metrics.png)
 
 ### From command line
-Check examples/commandline for an example of how to get and display profiler data from the command line. Run the example like this:
+Check [examples/commandline](https://github.com/britzl/defpro/tree/master/example/commandline) for an example of how to get and display profiler data from the command line. Run the example like this:
 
 	lua example/commandline/capture.lua
 
