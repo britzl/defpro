@@ -1,3 +1,6 @@
+--- This is the Defold version of DefPro. This should be used when
+-- accessing profiler data from within a running Defold app. 
+
 local M = require "defpro.profiler"
 
 function M.http_get(host, port, uri)

@@ -3,7 +3,7 @@ title = DefPro
 version = 0.1
 
 [bootstrap]
-main_collection = /example/defpro.collectionc
+main_collection = /example/defold/main.collectionc
 
 [input]
 game_binding = /input/game.input_bindingc
@@ -18,4 +18,7 @@ scale = 0.02
 
 [script]
 shared_state = 1
+
+[library]
+include_dirs = defpro
 

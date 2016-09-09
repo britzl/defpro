@@ -1,3 +1,13 @@
+--- This is the core of the profiler. It is responsible for
+-- getting and parsing profiling data from a running Defold app.
+-- It should not be used by itself since it doesn't provide any
+-- code to do the actual HTTP request to the Defold profiler to
+-- get profiling data. You need to replace the @{http_get} function
+-- with your own implementation to do the actual request.
+-- This project provides two implementations of the http_get()
+-- function, one using Defold's http.request() function and one
+-- using LuaSocket
+ 
 local bit = _G.bit32 or _G.bit
 if not bit then
 	error("You need either bit or bit32 module")
@@ -132,7 +142,6 @@ end
 function M.capture(sample_count, host, callback)
 	host = host or "localhost"
 	sample_count = sample_count or 10
-
 	coroutine.wrap(function()
 		local chunk = M.http_get(host, 8002, "/strings")
 		assert(chunk)

@@ -1,3 +1,7 @@
+--- This module shows some ways that the profiling data can
+-- be parsed and used to display the metrics in the top part
+-- of the web profiler.
+
 local M = {}
 
 local ticks_per_second = 1000
