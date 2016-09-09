@@ -1,0 +1,44 @@
+local defpro = require "defpro.defpro"
+local reporter = require "defpro.reporter"
+
+local function capture()
+	defpro.capture(1, "localhost", function(frames)
+		--reporter.print_scope_data(frames[1])
+		--reporter.print_sample_data(frames[1])
+		--reporter.print_counters_data(frames[1])
+
+		local stats = reporter.get_counters(frames[1], "%-20s %8d", "DrawCalls", "Instances") .. "\n\n"
+		stats = stats .. "Frame time: " .. frames[1].frame_time .. "\n"
+		gui.set_text(gui.get_node("stats"), stats)
+	end)
+end
+
+local CAPTURE_INTERVAL = 0.5
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	self.time_to_captue = CAPTURE_INTERVAL
+end
+
+function final(self)
+	msg.post(".", "release_input_focus")
+end
+
+function update(self, dt)
+	self.time_to_captue = self.time_to_captue - dt
+	if self.time_to_captue < 0 then
+		self.time_to_captue = self.time_to_captue + CAPTURE_INTERVAL
+		capture()
+	end
+end
+
+function on_input(self, action_id, action)
+	if action.released then
+		capture()
+	end
+end
+
+function on_reload(self)
+    -- Add input-handling code here
+    -- Remove this function if not needed
+end

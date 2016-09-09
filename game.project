@@ -1,16 +1,17 @@
 [project]
-title = My project
+title = DefPro
 version = 0.1
 
 [bootstrap]
-main_collection = /main/main.collectionc
+main_collection = /example/defpro.collectionc
 
 [input]
 game_binding = /input/game.input_bindingc
 
 [display]
-width = 1280
-height = 720
+width = 640
+height = 1136
+variable_dt = 1
 
 [physics]
 scale = 0.02
