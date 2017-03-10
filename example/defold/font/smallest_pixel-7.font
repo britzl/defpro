@@ -1,4 +1,4 @@
-font: "/example/defold/font/8bit16.ttf"
+font: "/example/defold/font/smallest_pixel-7.ttf"
 material: "/example/defold/font/pixelfont.material"
-size: 8
+size: 9
 antialias: 0
