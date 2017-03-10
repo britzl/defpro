@@ -54,10 +54,8 @@ local function parse_strings(d)
 
 	local offset = 7
 	for i=1,str_count do
-		local id = read_ptr(d, offset, ptr_size)
-		offset = offset + ptr_size
-		local length = read_uint16(d, offset)
-		offset = offset + 2
+		local id = read_ptr(d, offset, ptr_size); offset = offset + ptr_size
+		local length = read_uint16(d, offset); offset = offset + 2
 		strings[id] = d:sub(offset, offset + length - 1)
 		offset = offset + length
 	end
@@ -67,24 +65,23 @@ end
 local function parse_frame(d, strings)
 	assert(d, "You must provide some data to parse")
 	assert(strings, "You must provide strings")
-	
-	local ptr_size = read_uint16(d, 1)
+
+	local offset = 1
+	local ptr_size = read_uint16(d, offset); offset = offset + 2
 
 	local samples = {}
-	local sample_count = read_uint32(d, 3)
-	local offset = 7
+	local sample_count = read_uint32(d, offset); offset = offset + 4
 	local frame_time = 0
 	for i=1, sample_count do
-		local name_id = read_ptr(d, offset, ptr_size)
-		local scope = read_ptr(d, offset + ptr_size, ptr_size)
-		offset = offset + ptr_size + ptr_size
+		local name_id = read_ptr(d, offset, ptr_size); offset = offset + ptr_size
+		local scope = read_ptr(d, offset, ptr_size); offset = offset + ptr_size
 
-		local start = read_uint32(d, offset)
-		local elapsed = read_uint32(d, offset + 4)
-		local thread_id = read_uint16(d, offset + 8)
+		local start = read_uint32(d, offset); offset = offset + 4
+		local elapsed = read_uint32(d, offset); offset = offset + 4
+		local thread_id = read_uint16(d, offset); offset = offset + 2
 		local name = strings[name_id] or "?"
 		local scope_name = strings[scope] or "?"
-		offset = offset + 16
+		offset = offset + 6
 
 		frame_time = math.max(frame_time, elapsed / ticks_per_second)
 
@@ -98,13 +95,11 @@ local function parse_frame(d, strings)
 	end
 
 	local scopes_data = {}
-	local scope_count = read_uint32(d, offset)
-	offset = offset + 4
+	local scope_count = read_uint32(d, offset); offset = offset + 4
 	for i=1,scope_count do
-		local name_id = read_ptr(d, offset, ptr_size)
-		local elapsed = read_uint32(d, offset + ptr_size)
-		local count = read_uint32(d, offset + ptr_size + 4)
-		offset = offset + ptr_size + 2 * 4
+		local name_id = read_ptr(d, offset, ptr_size); offset = offset + ptr_size
+		local elapsed = read_uint32(d, offset); offset = offset + 4
+		local count = read_uint32(d, offset); offset = offset + 4
 		local name = strings[name_id]
 		scopes_data[name] = {
 			elapsed = elapsed,
@@ -113,12 +108,14 @@ local function parse_frame(d, strings)
 	end
 
 	local counters_data = {}
-	local counter_count = read_uint32(d, offset)
-	offset = offset + 4
+	local counter_count = read_uint32(d, offset); offset = offset + 4
 	for i=1,counter_count do
-		local name_id = read_ptr(d, offset, ptr_size)
-		local value = read_uint32(d, offset + ptr_size)
-		offset = offset + 4 + ptr_size
+		local name_id = read_ptr(d, offset, ptr_size); offset = offset + ptr_size
+		local value = read_uint32(d, offset); offset = offset + 4
+		-- the struct is padded on 64 bit systems
+		if ptr_size == 8 then
+			offset = offset + 4
+		end
 		local name = strings[name_id]
 		counters_data[name] = {
 			value = value,
