@@ -2,7 +2,7 @@ local profiler = require "defpro.defoldprofiler"
 local reporter = require "defpro.reporter"
 
 local function capture()
-	profiler.capture(1, "localhost", function(frames)
+	profiler.capture(1, "127.0.0.1", function(frames)
 		local stats = reporter.get_counters(frames[1], "%-20s %8d", "DrawCalls", "Instances") .. "\n\n"
 		stats = stats .. "Frame time: " .. frames[1].frame_time .. "\n"
 		gui.set_text(gui.get_node("stats"), stats)
@@ -12,6 +12,7 @@ end
 local CAPTURE_INTERVAL = 0.5
 
 function init(self)
+	gui.set_render_order(7)
 	self.time_to_captue = CAPTURE_INTERVAL
 end
 
