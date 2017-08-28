@@ -68,6 +68,7 @@ local function parse_frame(d, strings)
 
 	local offset = 1
 	local ptr_size = read_uint16(d, offset); offset = offset + 2
+	local ticks_per_second = read_uint32(d, offset); offset = offset + 4
 
 	local samples = {}
 	local sample_count = read_uint32(d, offset); offset = offset + 4
