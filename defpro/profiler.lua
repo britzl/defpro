@@ -17,6 +17,15 @@ local M = {}
 
 local ticks_per_second = 1000
 
+local function engine_version_newer_or_equal(expected_major, expected_minor, expected_micro)
+	local actual_major, actual_minor, actual_micro = string.match(sys.get_engine_info().version, "(%d*)%.(%d*)%.(%d*)")
+	actual_major = tonumber(actual_major)
+	actual_minor = tonumber(actual_minor)
+	actual_micro = tonumber(actual_micro)
+	return actual_major > expected_major
+		or (actual_major == expected_major and actual_minor > expected_minor)
+		or (actual_major == expected_major and actual_minor == expected_minor and actual_micro >= expected_micro)
+end
 
 local function read_uint16(d, offset)
 	assert(d, "You must provide some data to parse")
@@ -68,7 +77,11 @@ local function parse_frame(d, strings)
 
 	local offset = 1
 	local ptr_size = read_uint16(d, offset); offset = offset + 2
-	local ticks_per_second = read_uint32(d, offset); offset = offset + 4
+
+	-- DEF-1489 - Fixed: Web-based profiler showing wrong time on random windows machines
+	if engine_version_newer_or_equal(1, 2, 111) then
+		ticks_per_second = read_uint32(d, offset); offset = offset + 4
+	end
 
 	local samples = {}
 	local sample_count = read_uint32(d, offset); offset = offset + 4
