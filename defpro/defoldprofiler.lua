@@ -16,6 +16,9 @@ function M.http_get(host, port, uri)
 	local response_handler = nil
 	response_handler = function(self, id, response)
 		if response.status == 302 then
+			-- The gsub() is a temp fix for broken header parsing in Defold 1.2.143
+			-- where the http client always expects a space between the colon and the
+			-- header value
 			url = response.headers.location:gsub("^ttp", "http")
 			http.request(url, "GET", response_handler)
 		else
