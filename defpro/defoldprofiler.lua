@@ -12,9 +12,18 @@ function M.http_get(host, port, uri)
 	assert(co, "You must call this function from within a coroutine")
 	
 	local url = ("http://%s:%d%s"):format(host, port, uri)
-	http.request(url, "GET", function(self, id, response)
-		coroutine.resume(co, response.response)
-	end)
+
+	local response_handler = nil
+	response_handler = function(self, id, response)
+		if response.status == 302 then
+			url = response.headers.location:gsub("^ttp", "http")
+			http.request(url, "GET", response_handler)
+		else
+			local ok, err = coroutine.resume(co, response.response)
+			if not ok then print(err) end
+		end
+	end
+	http.request(url, "GET", response_handler)
 	return coroutine.yield()
 end
 

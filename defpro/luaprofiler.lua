@@ -33,11 +33,13 @@ function M.http_get(host, port, uri)
 	assert(tcp_client:send(request))
 
 	-- read headers
+	local headers = {}
 	while true do
-		local line = assert(tcp_client:receive("*l"))
-		if line == "" then
+		local header = assert(tcp_client:receive("*l"))
+		if header == "" then
 			break
 		end
+		headers[#headers + 1] = header
 	end
 
 	-- read chunk length

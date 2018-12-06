@@ -17,87 +17,106 @@ local M = {}
 
 local ticks_per_second = 1000
 
-local function engine_version_newer_or_equal(expected_major, expected_minor, expected_micro)
-	local actual_major, actual_minor, actual_micro = string.match(sys.get_engine_info().version, "(%d*)%.(%d*)%.(%d*)")
-	actual_major = tonumber(actual_major)
-	actual_minor = tonumber(actual_minor)
-	actual_micro = tonumber(actual_micro)
-	return actual_major > expected_major
-		or (actual_major == expected_major and actual_minor > expected_minor)
-		or (actual_major == expected_major and actual_minor == expected_minor and actual_micro >= expected_micro)
+local function dump(s)
+	for i=1,#s do
+		local b = s:byte(i)
+		print(("#%d %d (%s)"):format(i, b, string.char(b)))
+	end
 end
 
-local function read_uint16(d, offset)
-	assert(d, "You must provide some data to parse")
-	assert(offset, "You must provide an offset")
-	--print("read_uint16", offset)
-	local a1 = d:byte(offset + 1)
-	local a2 = d:byte(offset)
-	return bit.lshift(a1, 8) + a2
-end
+local function mem_file(data)
+	assert(data, "You must provide some data")
+	local file = {}
 
-local function read_uint32(d, offset)
-	assert(d, "You must provide some data to parse")
-	assert(offset, "You must provide an offset")
-	--print("read_uint32", offset)
-	local a1 = d:byte(offset + 3)
-	local a2 = d:byte(offset + 2)
-	local a3 = d:byte(offset + 1)
-	local a4 = d:byte(offset + 0)
-	return bit.lshift(a1, 24) + bit.lshift(a2, 16) + bit.lshift(a3, 8) + a4
-end
+	local offset = 1
 
-local function read_ptr(d, offset, size)
-	assert(d, "You must provide some data to parse")
-	assert(offset, "You must provide an offset")
-	assert(size, "You must provide a size")
-	return d:sub(offset, offset + size - 1)
-end
+	function file.read_uint8()
+		local b = data:byte(offset)
+		offset = offset + 1
+		return b
+	end
+	
+	function file.read_uint16()
+		local lower = file.read_uint8()
+		local upper = file.read_uint8()
+		return bit.lshift(upper, 8) + lower
+	end
 
-local function parse_strings(d)
-	assert(d, "You must provide some data to parse")
+	function file.read_uint32()
+		local a4 = file.read_uint8()
+		local a3 = file.read_uint8()
+		local a2 = file.read_uint8()
+		local a1 = file.read_uint8()
+		return bit.lshift(a1, 24) + bit.lshift(a2, 16) + bit.lshift(a3, 8) + a4
+	end
+
+	function file.read_uint64()
+		return file.read_uint32() .. file.read_uint32()
+	end
+
+	function file.read_string()
+		local length = file.read_uint16()
+		local s = data:sub(offset, offset + length - 1)
+		offset = offset + length
+		return s
+	end
+
+	function file.eof()
+		return offset > #data
+	end
+
+	function file.offset()
+		return offset
+	end
+
+	function file.data()
+		return data
+	end
+		
+	return file
+end	
+
+
+local function parse_strings(file)
+	assert(file, "You must provide some data to parse")
 
 	local strings = {}
-	local ptr_size = read_uint16(d, 1)
-	local str_count = read_uint32(d, 3)
-
-	local offset = 7
-	for i=1,str_count do
-		local id = read_ptr(d, offset, ptr_size); offset = offset + ptr_size
-		local length = read_uint16(d, offset); offset = offset + 2
-		strings[id] = d:sub(offset, offset + length - 1)
-		offset = offset + length
+	while not file.eof() do
+		local id = file.read_uint64()
+		local s = file.read_string()
+		strings[id] = s
 	end
 	return strings
 end
 
-local function parse_frame(d, strings)
-	assert(d, "You must provide some data to parse")
+local function parse_frame(file, strings)
+	assert(file, "You must provide some data to parse")
 	assert(strings, "You must provide strings")
 
-	local offset = 1
-	local ptr_size = read_uint16(d, offset); offset = offset + 2
+	ticks_per_second = file.read_uint32() / 1000
 
-	-- DEF-1489 - Fixed: Web-based profiler showing wrong time on random windows machines
-	if engine_version_newer_or_equal(1, 2, 111) then
-		ticks_per_second = read_uint32(d, offset); offset = offset + 4
+	local function is_end(file)
+		local s = file.data():sub(file.offset() + 2, file.offset() + 5)
+		return s == "ENDD"
 	end
-
+	
 	local samples = {}
-	local sample_count = read_uint32(d, offset); offset = offset + 4
 	local frame_time = 0
-	for i=1, sample_count do
-		local name_id = read_ptr(d, offset, ptr_size); offset = offset + ptr_size
-		local scope = read_ptr(d, offset, ptr_size); offset = offset + ptr_size
+	while not file.eof() do
+		if is_end(file) then
+			break
+		end
 
-		local start = read_uint32(d, offset); offset = offset + 4
-		local elapsed = read_uint32(d, offset); offset = offset + 4
-		local thread_id = read_uint16(d, offset); offset = offset + 2
-		local name = strings[name_id] or "?"
-		local scope_name = strings[scope] or "?"
-		offset = offset + 6
+		local name_id = file.read_uint64()
+		local scope_id = file.read_uint64()
+		local start = file.read_uint32()
+		local elapsed = file.read_uint32()
+		local thread_id = file.read_uint16()
 
 		frame_time = math.max(frame_time, elapsed / ticks_per_second)
+
+		local name = strings[name_id]
+		local scope_name = strings[scope_id]
 
 		local s = {
 			scope_name = scope_name,
@@ -106,30 +125,35 @@ local function parse_frame(d, strings)
 			elapsed = elapsed / ticks_per_second
 		}
 		table.insert(samples, s)
-	end
+	end	
+
+	file.read_string() -- ENDD
 
 	local scopes_data = {}
-	local scope_count = read_uint32(d, offset); offset = offset + 4
-	for i=1,scope_count do
-		local name_id = read_ptr(d, offset, ptr_size); offset = offset + ptr_size
-		local elapsed = read_uint32(d, offset); offset = offset + 4
-		local count = read_uint32(d, offset); offset = offset + 4
+	while not file.eof() do
+		if is_end(file) then
+			break
+		end
+
+		local name_id = file.read_uint64()
+		local elapsed = file.read_uint32()
+		local count = file.read_uint32()
 		local name = strings[name_id]
 		scopes_data[name] = {
 			elapsed = elapsed,
 			count = count,
 		}
-	end
+	end	
+
+	file.read_string() -- ENDD
 
 	local counters_data = {}
-	local counter_count = read_uint32(d, offset); offset = offset + 4
-	for i=1,counter_count do
-		local name_id = read_ptr(d, offset, ptr_size); offset = offset + ptr_size
-		local value = read_uint32(d, offset); offset = offset + 4
-		-- the struct is padded on 64 bit systems
-		if ptr_size == 8 then
-			offset = offset + 4
+	while not file.eof() do
+		if is_end(file) then
+			break
 		end
+		local name_id = file.read_uint64()
+		local value = file.read_uint32()
 		local name = strings[name_id]
 		counters_data[name] = {
 			value = value,
@@ -153,20 +177,27 @@ end
 function M.capture(sample_count, host, callback)
 	host = host or "localhost"
 	sample_count = sample_count or 10
-	coroutine.wrap(function()
-		local chunk = M.http_get(host, 8002, "/strings")
+	local co = coroutine.create(function()
+		local chunk = M.http_get(host, 8002, "/profile_strings")
 		assert(chunk)
-		local strings = parse_strings(chunk:sub(5))
+		local file = mem_file(chunk)
+		assert(file.read_string() == "STRS")
+		local strings = parse_strings(file)
 		
 		local frames = {}
 		for i=1,sample_count do
-			local chunk = M.http_get(host, 8002, "/profile")
-			local frame = parse_frame(chunk:sub(5), strings)
+			local chunk = M.http_get(host, 8002, "/profile_frame")
+			assert(chunk)
+			local file = mem_file(chunk)
+			assert(file.read_string() == "PROF")
+			local frame = parse_frame(file, strings)
 			table.insert(frames, frame)
 		end
 	
 		if callback then callback(frames) end
-	end)()
+	end)
+	local ok, err = coroutine.resume(co)
+	if not ok then print(err) end
 end
 
 return M
