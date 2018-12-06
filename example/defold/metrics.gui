@@ -11,8 +11,8 @@ background_color {
 }
 nodes {
   position {
-    x: 110.74916
-    y: 1026.182
+    x: 6.749
+    y: 1132.182
     z: 0.0
     w: 1.0
   }
@@ -46,7 +46,7 @@ nodes {
   id: "bg"
   xanchor: XANCHOR_NONE
   yanchor: YANCHOR_NONE
-  pivot: PIVOT_CENTER
+  pivot: PIVOT_NW
   adjust_mode: ADJUST_MODE_FIT
   layer: "below"
   inherit_alpha: true
@@ -65,8 +65,8 @@ nodes {
 }
 nodes {
   position {
-    x: -95.0
-    y: 95.0
+    x: 9.0
+    y: -9.0
     z: 0.0
     w: 1.0
   }
@@ -119,16 +119,12 @@ nodes {
   parent: "bg"
   layer: "text"
   inherit_alpha: false
-  clipping_mode: CLIPPING_MODE_NONE
-  clipping_visible: true
-  clipping_inverted: false
   alpha: 1.0
   outline_alpha: 1.0
   shadow_alpha: 1.0
   template_node_child: false
   text_leading: 1.5
   text_tracking: 0.0
-  size_mode: SIZE_MODE_AUTO
 }
 layers {
   name: "below"

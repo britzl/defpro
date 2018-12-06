@@ -169,6 +169,45 @@ local function parse_frame(file, strings)
 end
 
 
+local function parse_gameobjects(file)
+	assert(file, "You must provide some data to parse")
+
+	local game_objects = {}
+	while not file.eof() do
+		local game_object = {
+			name = file.read_string(), 
+			resource = file.read_string(),
+			type = file.read_string(),
+			index = file.read_uint32(),
+			parent = file.read_uint32(),
+			children = {}
+		}
+		game_objects[game_object.index] = game_object
+
+		local p = game_objects[game_object.parent]
+		if p then
+			p.children[#p.children + 1] = game_object
+		end
+	end
+	return game_objects
+end
+
+local function parse_resources(file)
+	assert(file, "You must provide some data to parse")
+
+	local resources = {}
+	while not file.eof() do
+		resources[#resources + 1] = {
+			name = file.read_string(),
+			type = file.read_string(),
+			size = file.read_uint32(),
+			size_on_disk = file.read_uint32(),
+			ref_count = file.read_uint32()
+		}
+	end
+	return resources
+end
+
 function M.http_get(host, port, uri)
 	error("You need to replace this function stub with an actual implementation that does an HTTP GET") 
 end
@@ -193,8 +232,20 @@ function M.capture(sample_count, host, callback)
 			local frame = parse_frame(file, strings)
 			table.insert(frames, frame)
 		end
-	
-		if callback then callback(frames) end
+
+		local chunk = M.http_get(host, 8002, "/gameobjects_data")
+		assert(chunk)
+		local file = mem_file(chunk)
+		assert(file.read_string() == "GOBJ")
+		local game_objects = parse_gameobjects(file)
+
+		local chunk = M.http_get(host, 8002, "/resources_data")
+		assert(chunk)
+		local file = mem_file(chunk)
+		assert(file.read_string() == "RESS")
+		local resources = parse_resources(file)
+
+		if callback then callback(frames, game_objects, resources) end
 	end)
 	local ok, err = coroutine.resume(co)
 	if not ok then print(err) end

@@ -2,10 +2,39 @@ local profiler = require "defpro.defoldprofiler"
 local reporter = require "defpro.reporter"
 
 local function capture()
-	profiler.capture(1, "127.0.0.1", function(frames)
-		local stats = reporter.get_counters(frames[1], "%-20s %8d", "DrawCalls", "Instances") .. "\n\n"
-		stats = stats .. "Frame time: " .. frames[1].frame_time .. "\n"
+	profiler.capture(1, "127.0.0.1", function(frames, game_objects, resources)
+		
+		local stats = ""
+
+		-- profiler stats
+		stats = stats .. reporter.get_counters(frames[1], "%-20s %8d", "DrawCalls", "Instances") .. "\n\n"
+		stats = stats .. "Frame time: " .. frames[1].frame_time .. "\n\n"
+
+		-- resources
+		for _,resource in pairs(resources) do
+			stats = stats .. ("%s (%s) %.2fkB\n"):format(resource.name, resource.type, resource.size / 1000)
+		end
+		stats = stats .. "\n"
+
+		-- game objects
+		local root = game_objects[1]
+		local indent = "  "
+		local indent_count = 0
+		local function dump_object(o)
+			stats = stats .. ("%s%s (%s)\n"):format(indent:rep(indent_count), o.name, o.type)
+			indent_count = indent_count + 1
+			for _,child in ipairs(o.children) do
+				dump_object(child)
+			end
+			indent_count = indent_count - 1
+		end
+		dump_object(root)
+		
 		gui.set_text(gui.get_node("stats"), stats)
+
+		--  resize bg to fit text
+		local metrics = gui.get_text_metrics_from_node(gui.get_node("stats"))
+		gui.set_size(gui.get_node("bg"), vmath.vector3(metrics.width + 20, metrics.height + 20, 0))
 	end)
 end
 
