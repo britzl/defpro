@@ -138,7 +138,7 @@ local function parse_frame(file, strings)
 		local name_id = file.read_uint64()
 		local elapsed = file.read_uint32()
 		local count = file.read_uint32()
-		local name = strings[name_id]
+		local name = strings[name_id] or "?name"
 		scopes_data[name] = {
 			elapsed = elapsed,
 			count = count,
