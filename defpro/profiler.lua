@@ -115,8 +115,8 @@ local function parse_frame(file, strings)
 
 		frame_time = math.max(frame_time, elapsed / ticks_per_second)
 
-		local name = strings[name_id]
-		local scope_name = strings[scope_id]
+		local name = strings[name_id] or "?name"
+		local scope_name = strings[scope_id] or "?scope"
 
 		local s = {
 			scope_name = scope_name,
