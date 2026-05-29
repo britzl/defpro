@@ -33,7 +33,9 @@ local function capture()
 		gui.set_text(gui.get_node("stats"), stats)
 
 		--  resize bg to fit text
-		local metrics = gui.get_text_metrics_from_node(gui.get_node("stats"))
+		local stats_node = gui.get_node("stats")
+		local stats_font = gui.get_font_resource(gui.get_font(stats_node))
+		local metrics = resource.get_text_metrics(stats_font, gui.get_text(stats_node), { width = gui.get_size(stats_node).x, line_break = gui.get_line_break(stats_node) })
 		gui.set_size(gui.get_node("bg"), vmath.vector3(metrics.width + 20, metrics.height + 20, 0))
 	end)
 end
